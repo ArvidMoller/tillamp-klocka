@@ -1,10 +1,12 @@
 /*
 * Name: Clock and temp project
 * Author: Arvid Möller
-* Date: 2024-10-10
+* Date: 2024-10-25
 * Description: This project uses a ds3231 to measure time and displays the time to an 1306 oled display,
 * Further, it measures temprature with a analog temprature module and displays a mapped value to a 9g-servo-motor
+* It also has a stopwatch you can scroll to using a potentiometer and start/stop using a button
 */
+
 
 // Include Libraries
 #include <RTClib.h>
@@ -27,6 +29,7 @@ U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NO_ACK);
 Servo tmpServo;
 DateTime timerdt;
 
+
 void setup() {
   // init communication
   Serial.begin(9600);
@@ -44,9 +47,8 @@ void setup() {
   u8g.setFont(u8g_font_unifont);
 }
 
-void loop() {
-  // unsigned long sampleTime = millis();
 
+void loop() {
   if ((analogRead(potPin)) > 1023 / 2) {
     Serial.println("Clock");
     oledWrite(30, 30, getTime());
@@ -57,9 +59,6 @@ void loop() {
 
 
   servoWrite(getTemp());
-
-  // while(millis() - sampleTime <= 1000){
-  // }
 }
 
 
@@ -71,15 +70,7 @@ void loop() {
 String getTime() {
   DateTime now = rtc.now();
 
-  if (now.second() < 10 && now.minute() < 10) {
-    return String(now.hour()) + ":0" + String(now.minute()) + ":0" + String(now.second());
-  } else if (now.second() < 10) {
-    return String(now.hour()) + ":" + String(now.minute()) + ":0" + String(now.second());
-  } else if (now.minute() < 10) {
-    return String(now.hour()) + ":0" + String(now.minute()) + ":" + String(now.second());
-  } else {
-    return String(now.hour()) + ":" + String(now.minute()) + ":" + String(now.second());
-  }
+  return formatTime(now.hour(), now.minute(), now.second());
 }
 
 
@@ -98,7 +89,7 @@ float getTemp() {
   R2 = R1 * (1023.0 / (float)Vo - 1.0);  //calculate resistance on thermistor
   logR2 = log(R2);
   T = (1.0 / (c1 + c2 * logR2 + c3 * logR2 * logR2 * logR2));  // temperature in Kelvin
-  T = T - 273.15;                                              //convert Kelvin to Celcius
+  T = T - 273.15; //convert Kelvin to Celcius
 
   return T;
 }
@@ -150,25 +141,18 @@ String timer() {
     timerM = now.minute() - timerdt.minute();
     timerS = now.second() - timerdt.second();
 
-  if (timerS < 0) {
-    timerS += 60;
-    timerM--;
-  }
-  if (timerM < 0) {
-    timerM += 60;
-    timerH--;
-  }
+    // If time is negative, make it not negative :)
+    if (timerS < 0) {
+      timerS += 60;
+      timerM--;
+    }
+    if (timerM < 0) {
+      timerM += 60;
+      timerH--;
+    }
   }
 
-  if (timerS < 10 && timerM < 10) {
-    return String(timerH) + ":0" + String(timerM) + ":0" + String(timerS);
-  } else if (timerS < 10) {
-    return String(timerH) + ":" + String(timerM) + ":0" + String(timerS);
-  } else if (timerM < 10) {
-    return String(timerH) + ":0" + String(timerM) + ":" + String(timerS);
-  } else {
-    return String(timerH) + ":" + String(timerM) + ":" + String(timerS);
-  }
+  return formatTime(timerH, timerM, timerS);
 }
 
 
@@ -177,7 +161,8 @@ void sampleTimer(){
 }
 
 
-/*This is a state switch for the timer, used to stop and start timer
+/*
+*This is a state switch for the timer, used to stop and start timer
 *Parameters: void
 *Returns: the current state as boolean
 */
@@ -193,4 +178,36 @@ bool stateSwitch() {
 
   Serial.println(state);
   return state;
+}
+
+
+/*
+*This function formats the time as following HH:MM:SS
+*Parameters: h: the hours to format. m: the minutes to format. s: the seconds to format
+*Returns: The formated time as a String
+*/
+String formatTime(int h, int m, int s){
+  String sString;
+  String mString;
+  String hString;
+  
+  if (s < 10){
+    sString = ":0" + String(s);
+  }else{
+    sString = ":" + String(s);
+  }
+
+  if (m < 10){
+    mString = ":0" + String(m);
+  } else{
+    mString = ":" + String(m);
+  }
+
+  if (h < 10){
+    hString = "0" + String(h);
+  } else{
+    hString = String(h);
+  }
+
+  return hString + mString + sString;
 }
