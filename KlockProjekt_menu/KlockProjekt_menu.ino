@@ -150,8 +150,14 @@ String timer() {
     timerM = now.minute() - timerdt.minute();
     timerS = now.second() - timerdt.second();
 
-    Serial.println(timerH);
-    Serial.println(timerdt.hour());
+  if (timerS < 0) {
+    timerS += 60;
+    timerM--;
+  }
+  if (timerM < 0) {
+    timerM += 60;
+    timerH--;
+  }
   }
 
   if (timerS < 10 && timerM < 10) {
